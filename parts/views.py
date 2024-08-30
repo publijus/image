@@ -33,7 +33,7 @@ def upload_images(request, pk):
 
 def create_thumbnail(image):
     img = Image.open(image.image.path)
-    img.thumbnail((400, 400))
+    img.thumbnail((100, 100))
     thumb_dir = os.path.join('media/car_parts/thumbnails')
     if not os.path.exists(thumb_dir):
         os.makedirs(thumb_dir)
