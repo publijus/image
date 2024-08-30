@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Car Part</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .image-item {
+            position: relative;
+            margin: 10px;
+        }
+        .image-item img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+        .image-item .actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+        }
+        .image-item .actions i {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Edit Car Part</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save</button>
+    </form>
+    <h2>Images</h2>
+    <form method="post" enctype="multipart/form-data" action="{% url 'upload_images' part.id %}">
+        {% csrf_token %}
+        <input type="file" name="images" multiple>
+        <button type="submit">Upload Images</button>
+    </form>
+    <div id="app">
+        <div class="image-container">
+            {% for image in part.images.all %}
+            <div class="image-item">
+                {% if image.thumbnail %}
+                <img :src="`{{ image.thumbnail.url }}`" alt="Image">
+                {% else %}
+                <p>No thumbnail available</p>
+                {% endif %}
+                <div class="actions">
+                    <i class="fas fa-edit" @click="openModal('{{ image.id }}', '{{ image.image.url }}')"></i>
+                    <i class="fas fa-trash" @click="deleteImage('{{ image.id }}')"></i>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="editImageModal" tabindex="-1" role="dialog" aria-labelledby="editImageModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editImageModalLabel">Edit Image</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="image-container">
+                            <img id="modalImage" :src="currentImageUrl" alt="Image" class="img-fluid">
+                        </div>
+                        <div class="actions mt-3">
+                            <button class="btn btn-primary" @click="rotateImage('left')">Rotate Left</button>
+                            <button class="btn btn-primary" @click="rotateImage('right')">Rotate Right</button>
+                            <button class="btn btn-primary" @click="adjustImage">Brightness/Contrast</button>
+                            <button class="btn btn-primary" @click="cropImage">Crop</button>
+                            <button class="btn btn-primary" @click="annotateImage">Annotate</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                currentImageId: null,
+                currentImageUrl: ''
+            },
+            methods: {
+                openModal(imageId, imageUrl) {
+                    this.currentImageId = imageId;
+                    this.currentImageUrl = imageUrl;
+                    $('#editImageModal').modal('show');
+                },
+                sendEditRequest(action, data) {
+                    const formData = new FormData();
+                    formData.append('action', action);
+                    for (const key in data) {
+                        formData.append(key, data[key]);
+                    }
+                    fetch(`/edit_image/${this.currentImageId}/`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('Image edited successfully');
+                            location.reload();
+                        } else {
+                            alert('Failed to edit image');
+                        }
+                    });
+                },
+                rotateImage(direction) {
+                    this.sendEditRequest('rotate', { direction });
+                },
+                adjustImage() {
+                    const brightness = prompt('Enter brightness (0.1 to 2):', '1');
+                    const contrast = prompt('Enter contrast (0.1 to 2):', '1');
+                    this.sendEditRequest('adjust', { brightness, contrast });
+                },
+                cropImage() {
+                    const left = prompt('Enter left:', '0');
+                    const top = prompt('Enter top:', '0');
+                    const right = prompt('Enter right:', '100');
+                    const bottom = prompt('Enter bottom:', '100');
+                    this.sendEditRequest('crop', { left, top, right, bottom });
+                },
+                annotateImage() {
+                    const text = prompt('Enter text to annotate:', 'Sample Text');
+                    this.sendEditRequest('annotate', { text });
+                },
+                deleteImage(imageId) {
+                    if (confirm('Are you sure you want to delete this image?')) {
+                        window.location.href = `{% url 'delete_image' image_id=0 %}`.replace('0', imageId);
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

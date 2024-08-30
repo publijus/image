@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Parts</title>
+</head>
+<body>
+    <h1>Car Parts</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Part Code</th>
+            <th>Warehouse Code</th>
+            <th>Actions</th>
+        </tr>
+        {% for part in parts %}
+        <tr>
+            <td>{{ part.id }}</td>
+            <td>{{ part.part_code }}</td>
+            <td>{{ part.warehouse_code }}</td>
+            <td><a href="{% url 'car_part_edit' part.id %}">Edit</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
