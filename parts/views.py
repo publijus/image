@@ -8,7 +8,7 @@ from .models import CarPart, CarPartImage
 from .forms import CarPartForm, CarPartImageFormSet
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
 import os
-from django.core.files.base import ContentFile  # Pridėkite šią eilutę
+from django.core.files.base import ContentFile
 
 def car_part_list(request):
     parts = CarPart.objects.all()
@@ -23,6 +23,12 @@ def car_part_edit(request, pk):
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
+            
+            # Apdorojame naujas nuotraukas
+            for key, file in request.FILES.items():
+                if key.startswith('new_image_'):
+                    order = request.POST.get(f'new_image_order_{key.split("_")[-1]}')
+                    CarPartImage.objects.create(car_part=part, image=file, order=order)
             
             # Apdorojame ištrintus paveikslėlius
             deleted_images = request.POST.getlist('deleted_images[]')
@@ -57,12 +63,20 @@ def car_part_edit(request, pk):
 def upload_images(request, pk):
     part = get_object_or_404(CarPart, pk=pk)
     if request.method == 'POST':
-        for file in request.FILES.getlist('images'):
-            max_order = CarPartImage.objects.filter(car_part=part).aggregate(Max('order'))['order__max'] or 0
-            image = CarPartImage(car_part=part, image=file, order=max_order + 1)
+        new_images = []
+        max_order = CarPartImage.objects.filter(car_part=part).aggregate(Max('order'))['order__max'] or 0
+        for file in request.FILES.getlist('new_images'):
+            max_order += 1
+            image = CarPartImage(car_part=part, image=file, order=max_order)
             image.save()
             create_thumbnail(image)
-        return JsonResponse({'status': 'success'})
+            new_images.append({
+                'id': image.id,
+                'url': image.image.url,
+                'thumbnail_url': image.thumbnail.url,
+                'order': image.order
+            })
+        return JsonResponse({'status': 'success', 'images': new_images})
     return JsonResponse({'status': 'error'})
 
 @csrf_exempt

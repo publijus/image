@@ -12,7 +12,7 @@
 <body>
     <div class="container">
         <h1>Redaguoti automobilio dalį</h1>
-        <form method="post" enctype="multipart/form-data" id="car-part-form">
+        <form method="post" enctype="multipart/form-data" id="car-part-form" data-part-id="{{ part.id }}">
             {% csrf_token %}
             {% for field in form %}
                 <div class="form-group">
@@ -46,7 +46,7 @@
             <div class="form-group">
                 <label for="new_images">Įkelti naujas nuotraukas:</label>
                 <input type="file" name="new_images" id="new_images" multiple class="form-control-file">
-                <button type="button" class="btn btn-secondary" id="addImages">Pridėti nuotraukas</button>
+                <button type="button" class="btn btn-secondary" id="addImages">Įkelti nuotraukas</button>
             </div>
             
             <button type="submit" class="btn btn-primary">Išsaugoti</button>

@@ -167,12 +167,114 @@ document.addEventListener('DOMContentLoaded', function() {
             contentType: false,
             success: function(response) {
                 if (response.status === 'success') {
-                    alert('Pakeitimai sėkmingai išsaugoti');
-                    window.location.reload(); // Perkrauname puslapį, kad atnaujintume vaizdą
+                    window.location.href = "/";
                 } else {
                     alert('Įvyko klaida išsaugant pakeitimus');
                 }
             }
         });
+    });
+
+    $('#addImages').on('click', function() {
+        const fileInput = document.getElementById('new_images');
+        const files = fileInput.files;
+        const partId = $('#car-part-form').data('part-id');
+
+        if (files.length === 0) {
+            alert('Prašome pasirinkti nuotraukas įkėlimui.');
+            return;
+        }
+
+        if (!partId) {
+            alert('Nepavyko rasti dalies ID. Pabandykite perkrauti puslapį.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', $('input[name="csrfmiddlewaretoken"]').val());
+        for (let i = 0; i < files.length; i++) {
+            formData.append('new_images', files[i]);
+        }
+
+        $.ajax({
+            url: '/upload_images/' + partId + '/',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === 'success') {
+                    response.images.forEach(function(image) {
+                        addImageToList(image);
+                    });
+                    updateImageOrder();
+                    fileInput.value = ''; // Išvalyti failo įvesties lauką
+                } else {
+                    alert('Įvyko klaida įkeliant nuotraukas');
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Įvyko klaida įkeliant nuotraukas: ' + error);
+            }
+        });
+    });
+
+    function addImageToList(image) {
+        const imageList = document.getElementById('image-list');
+        const newImageItem = document.createElement('div');
+        newImageItem.className = 'image-item';
+        newImageItem.dataset.id = image.id;
+        newImageItem.dataset.originalSrc = image.url;  // Pridėkite originalų URL
+        newImageItem.innerHTML = `
+            <img src="${image.thumbnail_url}" alt="Nuotrauka">
+            <div class="order-id">${image.order}</div>
+            <div class="actions">
+                <i class="fas fa-edit edit-image"></i>
+                <i class="fas fa-trash delete-image"></i>
+            </div>
+            <input type="hidden" name="image-${image.id}-id" value="${image.id}">
+            <input type="hidden" name="image-${image.id}-order" value="${image.order}">
+        `;
+        imageList.appendChild(newImageItem);
+        
+        // Pridėkime įvykių klausytojus naujai pridėtam elementui
+        addEventListenersToImageItem(newImageItem);
+    }
+
+    function addEventListenersToImageItem(imageItem) {
+        $(imageItem).find('.edit-image').on('click', function() {
+            currentImageItem = $(this).closest('.image-item');
+            const imageSrc = currentImageItem.data('original-src');
+            
+            $('#image-editor').html('<img src="' + imageSrc + '" id="image-to-edit">');
+            $('#imageEditModal').modal('show');
+            
+            // Inicializuojame Cropper.js
+            cropper = new Cropper(document.getElementById('image-to-edit'), {
+                aspectRatio: NaN,
+                viewMode: 1,
+            });
+
+            // Inicializuojame Fabric.js
+            canvas = new fabric.Canvas('annotation-canvas');
+            canvas.setWidth($('#image-to-edit').width());
+            canvas.setHeight($('#image-to-edit').height());
+            
+            // Inicializuojame įrankius
+            initializeTools();
+        });
+
+        $(imageItem).find('.delete-image').on('click', function() {
+            if (confirm('Ar tikrai norite ištrinti šią nuotrauką?')) {
+                $(this).closest('.image-item').addClass('to-be-deleted');
+                $(this).closest('.image-item').hide();
+                updateImageOrder();
+            }
+        });
+    }
+
+    // Pridėkime įvykių klausytojus esamiems paveikslams
+    $('.image-item').each(function() {
+        addEventListenersToImageItem(this);
     });
 });
