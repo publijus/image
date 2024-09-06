@@ -9,13 +9,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Image editing
-    let currentImage;
+    let currentImageItem;
     let cropper;
 
     $('.edit-image').on('click', function() {
-        const imageSrc = $(this).closest('.image-item').data('original-src'); // Gauti originalios nuotraukos URL iš duomenų atributo
-        $('#image-editor').css('background-image', 'url(' + imageSrc + ')'); // Nustatyti modalą su originalia nuotrauka
-        $('#imageEditModal').modal('show'); // Atidaryti modalą
+        currentImageItem = $(this).closest('.image-item');
+        const imageSrc = currentImageItem.data('original-src');
+        
+        $('#image-editor').html('<img src="' + imageSrc + '" id="image-to-edit">');
+        $('#imageEditModal').modal('show');
+        
     });
 
     $('#rotateLeft').on('click', function() {
@@ -27,14 +30,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     $('#crop').on('click', function() {
-        let croppedCanvas = cropper.getCroppedCanvas();
-        currentImage.src = croppedCanvas.toDataURL();
+        cropper.setDragMode('crop');
     });
 
     $('#saveImage').on('click', function() {
-        let imageData = cropper.getCroppedCanvas().toDataURL();
-        // Here you would typically send this data to the server to save the changes
+        let canvas = cropper.getCroppedCanvas();
+        let imageData = canvas.toDataURL('image/jpeg');
+        
+        // Atnaujinti DOM su nauju paveikslu
+        currentImageItem.find('img').attr('src', imageData);
+        currentImageItem.find('img').attr('data-edited', 'true');
+        
         $('#imageEditModal').modal('hide');
+        cropper.destroy();
     });
 
     // Delete image
@@ -48,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to update image order
     function updateImageOrder() {
-        $('.image-item').each(function(index) {
+        $('.image-item:not(.to-be-deleted)').each(function(index) {
             $(this).find('.order-id').text(index + 1);
             $(this).find('input[name$="-order"]').val(index + 1);
         });
@@ -73,8 +81,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }));
         });
         
-        // Pridedame informaciją apie pakeistą tvarką
-        $('.image-item').each(function(index) {
+        
+        $('.image-item:not(.to-be-deleted)').each(function(index) {
             formData.append('image_order[]', JSON.stringify({
                 id: $(this).data('id'),
                 order: index + 1

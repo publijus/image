@@ -25,7 +25,7 @@
             <div id="image-list" class="image-container">
                 {{ formset.management_form }}
                 {% for form in formset %}
-                    <div class="image-item" data-id="{{ form.instance.id }}">
+                    <div class="image-item" data-id="{{ form.instance.id }}" data-original-src="{{ form.instance.image.url }}">
                         {% if form.instance.thumbnail %}
                             <img src="{{ form.instance.thumbnail.url }}" alt="Nuotrauka">
                         {% else %}
