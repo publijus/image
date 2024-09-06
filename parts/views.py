@@ -16,9 +16,16 @@ def car_part_edit(request, pk):
     if request.method == "POST":
         form = CarPartForm(request.POST, instance=part)
         formset = CarPartImageFormSet(request.POST, request.FILES, instance=part)
+        new_images = request.FILES.getlist('new_images')
+
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
+
+            for image in new_images:
+                new_image = CarPartImage.objects.create(car_part=part, image=image)
+                create_thumbnail(new_image)
+
             return redirect('car_part_edit', pk=pk)
     else:
         form = CarPartForm(instance=part)
@@ -75,50 +82,42 @@ def edit_image(request, image_id):
     image = get_object_or_404(CarPartImage, id=image_id)
     if request.method == 'POST':
         action = request.POST.get('action')
+        img = Image.open(image.image.path)
+        
         if action == 'rotate':
             direction = request.POST.get('direction')
-            rotate_image(image, direction)
+            img = rotate_image(img, direction)
         elif action == 'adjust':
             brightness = float(request.POST.get('brightness', 1))
             contrast = float(request.POST.get('contrast', 1))
-            adjust_image(image, brightness, contrast)
+            img = adjust_image(img, brightness, contrast)
         elif action == 'crop':
             left = int(request.POST.get('left'))
             top = int(request.POST.get('top'))
             right = int(request.POST.get('right'))
             bottom = int(request.POST.get('bottom'))
-            crop_image(image, left, top, right, bottom)
+            img = crop_image(img, left, top, right, bottom)
         elif action == 'annotate':
             text = request.POST.get('text')
-            annotate_image(image, text)
+            img = annotate_image(img, text)
+        
+        img.save(image.image.path)
         create_thumbnail(image)
         return JsonResponse({'status': 'success'})
     return render(request, 'parts/edit_image.html', {'image': image})
 
-def rotate_image(image, direction):
-    img = Image.open(image.image.path)
-    if direction == 'left':
-        img = img.rotate(90, expand=True)
-    else:
-        img = img.rotate(-90, expand=True)
-    img.save(image.image.path)
+def rotate_image(img, direction):
+    return img.rotate(90 if direction == 'left' else -90, expand=True)
 
-def adjust_image(image, brightness, contrast):
-    img = Image.open(image.image.path)
-    enhancer = ImageEnhance.Brightness(img)
-    img = enhancer.enhance(brightness)
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(contrast)
-    img.save(image.image.path)
+def adjust_image(img, brightness, contrast):
+    img = ImageEnhance.Brightness(img).enhance(brightness)
+    return ImageEnhance.Contrast(img).enhance(contrast)
 
-def crop_image(image, left, top, right, bottom):
-    img = Image.open(image.image.path)
-    img = img.crop((left, top, right, bottom))
-    img.save(image.image.path)
+def crop_image(img, left, top, right, bottom):
+    return img.crop((left, top, right, bottom))
 
-def annotate_image(image, text):
-    img = Image.open(image.image.path)
+def annotate_image(img, text):
     draw = ImageDraw.Draw(img)
     font = ImageFont.load_default()
     draw.text((10, 10), text, font=font, fill="white")
-    img.save(image.image.path)
+    return img

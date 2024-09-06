@@ -40,41 +40,42 @@
     </style>
 </head>
 <body>
-    <h1>Edit Car Part</h1>
-    <form method="post" enctype="multipart/form-data">
+    <h1>Redaguoti automobilio dalį</h1>
+    <form method="post" enctype="multipart/form-data" id="car-part-form">
         {% csrf_token %}
         {{ form.as_p }}
-        <h2>Images</h2>
+        
+        <h2>Įkelti nuotraukas</h2>
+        <input type="file" name="new_images" multiple>
+        <button type="submit">Upload Images</button>
+        
+        <h2>Vaizdai</h2>
         <div id="image-list" class="image-container">
             {{ formset.management_form }}
             {% for form in formset %}
                 <div class="image-item" data-id="{{ form.instance.id }}">
                     {% if form.instance.thumbnail %}
-                        <img src="{{ form.instance.thumbnail.url }}" alt="Image">
+                        <img src="{{ form.instance.thumbnail.url }}" alt="Nuotrauka">
                     {% else %}
-                        <p>No thumbnail available</p>
+                        <p>Nėra miniatiūros</p>
                     {% endif %}
                     <div class="order-id">{{ form.instance.order }}</div>
                     <div class="actions">
-                        <i class="fas fa-edit" onclick="openModal('{{ form.instance.id }}', '{{ form.instance.image.url }}')"></i>
+                        {% if form.instance.has_image %}
+                            <i class="fas fa-edit" onclick="openModal('{{ form.instance.id }}', '{{ form.instance.image.url }}')"></i>
+                        {% else %}
+                            <i class="fas fa-edit" onclick="alert('Nėra vaizdo redagavimui')"></i>
+                        {% endif %}
                         <i class="fas fa-trash" onclick="deleteImage('{{ form.instance.id }}')"></i>
                     </div>
                     {{ form.id }}
-                    {{ form.order }}
                     {{ form.DELETE }}
                 </div>
             {% endfor %}
         </div>
-        <button type="submit">Save</button>
+        <button type="submit">Išsaugoti</button>
     </form>
     
-    <h2>Upload Images</h2>
-    <form id="upload-form" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="file" name="images" multiple>
-        <button type="submit">Upload Images</button>
-    </form>
-
     <!-- Modal -->
     <div class="modal fade" id="editImageModal" tabindex="-1" role="dialog" aria-labelledby="editImageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">

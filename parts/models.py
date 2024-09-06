@@ -6,7 +6,7 @@ class CarPart(models.Model):
 
 class CarPartImage(models.Model):
     car_part = models.ForeignKey(CarPart, related_name='images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='car_parts/')
+    image = models.ImageField(upload_to='car_parts/', null=True, blank=True)
     thumbnail = models.ImageField(upload_to='car_parts/thumbnails/', null=True, blank=True)
     order = models.PositiveIntegerField(default=0)
 
