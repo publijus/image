@@ -3,17 +3,25 @@ document.addEventListener('DOMContentLoaded', function() {
     new Sortable(document.getElementById('image-list'), {
         animation: 150,
         ghostClass: 'blue-background-class',
-        onEnd: function (evt) {
-            updateImageOrder();
-        }
+        onEnd: updateImageOrder
     });
 
     // Image editing
     let currentImageItem;
     let cropper;
+    let canvas;
 
-    $('.edit-image').on('click', function() {
-        currentImageItem = $(this).closest('.image-item');
+    // Bendras įvykių klausytojas visiems paveikslėliams
+    $('#image-list').on('click', '.edit-image', function() {
+        initializeImageEdit($(this).closest('.image-item'));
+    });
+
+    $('#image-list').on('click', '.delete-image', function() {
+        deleteImage($(this).closest('.image-item'));
+    });
+
+    function initializeImageEdit(imageItem) {
+        currentImageItem = imageItem;
         const imageSrc = currentImageItem.data('original-src');
         
         $('#image-editor').html('<img src="' + imageSrc + '" id="image-to-edit">');
@@ -32,63 +40,53 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Inicializuojame įrankius tik paspaudus mygtukus
         initializeTools();
-    });
-
-    function initializeTools() {
-        $('#rotateLeft').on('click', function() {
-            cropper.rotate(-90);
-        });
-
-        $('#rotateRight').on('click', function() {
-            cropper.rotate(90);
-        });
-
-        $('#brightness').on('input', function() {
-            adjustBrightnessContrast();
-        });
-
-        $('#contrast').on('input', function() {
-            adjustBrightnessContrast();
-        });
-
-        $('#crop').on('click', function() {
-            cropper.setDragMode('crop');
-        });
-
-        $('#addRectangle').on('click', function() {
-            let rect = new fabric.Rect({
-                left: 100,
-                top: 100,
-                fill: 'transparent',
-                stroke: $('#annotationColor').val(),
-                strokeWidth: $('#annotationWidth').val(),
-                width: 200,
-                height: 100
-            });
-            canvas.add(rect);
-        });
-
-        $('#addText').on('click', function() {
-            let text = new fabric.IText('Įveskite tekstą', {
-                left: 100,
-                top: 100,
-                fontFamily: 'Arial',
-                fill: $('#annotationColor').val(),
-                fontSize: $('#annotationWidth').val() * 5
-            });
-            canvas.add(text);
-        });
-
-        $('#draw').on('click', function() {
-            canvas.isDrawingMode = !canvas.isDrawingMode;
-            if (canvas.isDrawingMode) {
-                canvas.freeDrawingBrush.color = $('#annotationColor').val();
-                canvas.freeDrawingBrush.width = $('#annotationWidth').val();
-            }
-        });
     }
 
-    $('#saveImage').on('click', function() {
+    function initializeTools() {
+        $('#rotateLeft').off('click').on('click', () => cropper.rotate(-90));
+        $('#rotateRight').off('click').on('click', () => cropper.rotate(90));
+        $('#brightness, #contrast').off('input').on('input', adjustBrightnessContrast);
+        $('#crop').off('click').on('click', () => cropper.setDragMode('crop'));
+        $('#addRectangle').off('click').on('click', addRectangle);
+        $('#addText').off('click').on('click', addText);
+        $('#draw').off('click').on('click', toggleDrawMode);
+    }
+
+    function addRectangle() {
+        let rect = new fabric.Rect({
+            left: 100,
+            top: 100,
+            fill: 'transparent',
+            stroke: $('#annotationColor').val(),
+            strokeWidth: parseInt($('#annotationWidth').val()),
+            width: 200,
+            height: 100
+        });
+        canvas.add(rect);
+    }
+
+    function addText() {
+        let text = new fabric.IText('Įveskite tekstą', {
+            left: 100,
+            top: 100,
+            fontFamily: 'Arial',
+            fill: $('#annotationColor').val(),
+            fontSize: parseInt($('#annotationWidth').val()) * 5
+        });
+        canvas.add(text);
+    }
+
+    function toggleDrawMode() {
+        canvas.isDrawingMode = !canvas.isDrawingMode;
+        if (canvas.isDrawingMode) {
+            canvas.freeDrawingBrush.color = $('#annotationColor').val();
+            canvas.freeDrawingBrush.width = parseInt($('#annotationWidth').val());
+        }
+    }
+
+    $('#saveImage').on('click', saveEditedImage);
+
+    function saveEditedImage() {
         let imageData = cropper.getCroppedCanvas().toDataURL('image/jpeg');
         
         // Pridedame anotacijas
@@ -112,16 +110,14 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#imageEditModal').modal('hide');
         cropper.destroy();
         canvas.dispose();
-    });
+    }
 
-    // Delete image
-    $('.delete-image').on('click', function() {
+    function deleteImage(imageItem) {
         if (confirm('Ar tikrai norite ištrinti šią nuotrauką?')) {
-            $(this).closest('.image-item').addClass('to-be-deleted');
-            $(this).closest('.image-item').hide(); // Paslepiame, bet nepašaliname iš DOM
+            imageItem.addClass('to-be-deleted').hide();
             updateImageOrder();
         }
-    });
+    }
 
     // Function to update image order
     function updateImageOrder() {
@@ -131,10 +127,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    $('#car-part-form').on('submit', function(e) {
-        e.preventDefault(); // Sustabdome įprastą formos pateikimą
-        
-        // Surenkame visus pakeitimus
+    $('#car-part-form').on('submit', submitForm);
+
+    function submitForm(e) {
+        e.preventDefault();
         let formData = new FormData(this);
         
         // Pridedame informaciją apie ištrintus paveikslėlius
@@ -149,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: this.src
             }));
         });
-        
         
         $('.image-item:not(.to-be-deleted)').each(function(index) {
             formData.append('image_order[]', JSON.stringify({
@@ -173,9 +168,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    });
+    }
 
-    $('#addImages').on('click', function() {
+    $('#addImages').on('click', uploadNewImages);
+
+    function uploadNewImages() {
         const fileInput = document.getElementById('new_images');
         const files = fileInput.files;
         const partId = $('#car-part-form').data('part-id');
@@ -204,9 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
             contentType: false,
             success: function(response) {
                 if (response.status === 'success') {
-                    response.images.forEach(function(image) {
-                        addImageToList(image);
-                    });
+                    response.images.forEach(addImageToList);
                     updateImageOrder();
                     fileInput.value = ''; // Išvalyti failo įvesties lauką
                 } else {
@@ -217,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Įvyko klaida įkeliant nuotraukas: ' + error);
             }
         });
-    });
+    }
 
     function addImageToList(image) {
         const imageList = document.getElementById('image-list');
@@ -236,45 +231,5 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="image-${image.id}-order" value="${image.order}">
         `;
         imageList.appendChild(newImageItem);
-        
-        // Pridėkime įvykių klausytojus naujai pridėtam elementui
-        addEventListenersToImageItem(newImageItem);
     }
-
-    function addEventListenersToImageItem(imageItem) {
-        $(imageItem).find('.edit-image').on('click', function() {
-            currentImageItem = $(this).closest('.image-item');
-            const imageSrc = currentImageItem.data('original-src');
-            
-            $('#image-editor').html('<img src="' + imageSrc + '" id="image-to-edit">');
-            $('#imageEditModal').modal('show');
-            
-            // Inicializuojame Cropper.js
-            cropper = new Cropper(document.getElementById('image-to-edit'), {
-                aspectRatio: NaN,
-                viewMode: 1,
-            });
-
-            // Inicializuojame Fabric.js
-            canvas = new fabric.Canvas('annotation-canvas');
-            canvas.setWidth($('#image-to-edit').width());
-            canvas.setHeight($('#image-to-edit').height());
-            
-            // Inicializuojame įrankius
-            initializeTools();
-        });
-
-        $(imageItem).find('.delete-image').on('click', function() {
-            if (confirm('Ar tikrai norite ištrinti šią nuotrauką?')) {
-                $(this).closest('.image-item').addClass('to-be-deleted');
-                $(this).closest('.image-item').hide();
-                updateImageOrder();
-            }
-        });
-    }
-
-    // Pridėkime įvykių klausytojus esamiems paveikslams
-    $('.image-item').each(function() {
-        addEventListenersToImageItem(this);
-    });
 });

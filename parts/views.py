@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Max
 from .models import CarPart, CarPartImage
 from .forms import CarPartForm, CarPartImageFormSet
-from PIL import Image, ImageEnhance, ImageDraw, ImageFont
+from PIL import Image
 import os
 from django.core.files.base import ContentFile
 
@@ -24,12 +24,6 @@ def car_part_edit(request, pk):
             form.save()
             formset.save()
             
-            # Apdorojame naujas nuotraukas
-            for key, file in request.FILES.items():
-                if key.startswith('new_image_'):
-                    order = request.POST.get(f'new_image_order_{key.split("_")[-1]}')
-                    CarPartImage.objects.create(car_part=part, image=file, order=order)
-            
             # Apdorojame ištrintus paveikslėlius
             deleted_images = request.POST.getlist('deleted_images[]')
             CarPartImage.objects.filter(id__in=deleted_images).delete()
@@ -38,11 +32,11 @@ def car_part_edit(request, pk):
             edited_images = json.loads(request.POST.get('edited_images', '[]'))
             for img_data in edited_images:
                 image = CarPartImage.objects.get(id=img_data['id'])
-                # Išsaugome naują paveikslėlio versiją
                 format, imgstr = img_data['data'].split(';base64,')
                 ext = format.split('/')[-1]
                 data = ContentFile(base64.b64decode(imgstr), name=f'image.{ext}')
                 image.image.save(f'edited_image_{image.id}.{ext}', data, save=True)
+                create_thumbnail(image)
             
             # Apdorojame pakeistą tvarką
             image_order = json.loads(request.POST.get('image_order', '[]'))
@@ -79,23 +73,6 @@ def upload_images(request, pk):
         return JsonResponse({'status': 'success', 'images': new_images})
     return JsonResponse({'status': 'error'})
 
-@csrf_exempt
-def update_image_order(request):
-    if request.method == 'POST':
-        image_ids = request.POST.getlist('image_ids[]')
-        valid_image_ids = [id for id in image_ids if id.isdigit()]
-        
-        for index, image_id in enumerate(valid_image_ids):
-            try:
-                image = CarPartImage.objects.get(id=int(image_id))
-                image.order = index
-                image.save()
-            except CarPartImage.DoesNotExist:
-                continue  # Ignoruojame neegzistuojančius ID
-        
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'})
-
 def create_thumbnail(image):
     img = Image.open(image.image.path)
     img.thumbnail((200, 200))
@@ -106,53 +83,3 @@ def create_thumbnail(image):
     img.save(thumb_path)
     image.thumbnail.name = os.path.join('car_parts/thumbnails', os.path.basename(image.image.path))
     image.save()
-
-def delete_image(request, image_id):
-    image = get_object_or_404(CarPartImage, id=image_id)
-    image.delete()
-    return redirect('car_part_edit', pk=image.car_part.id)
-
-@csrf_exempt
-def edit_image(request, image_id):
-    image = get_object_or_404(CarPartImage, id=image_id)
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        img = Image.open(image.image.path)
-        
-        if action == 'rotate':
-            direction = request.POST.get('direction')
-            img = rotate_image(img, direction)
-        elif action == 'adjust':
-            brightness = float(request.POST.get('brightness', 1))
-            contrast = float(request.POST.get('contrast', 1))
-            img = adjust_image(img, brightness, contrast)
-        elif action == 'crop':
-            left = int(request.POST.get('left'))
-            top = int(request.POST.get('top'))
-            right = int(request.POST.get('right'))
-            bottom = int(request.POST.get('bottom'))
-            img = crop_image(img, left, top, right, bottom)
-        elif action == 'annotate':
-            text = request.POST.get('text')
-            img = annotate_image(img, text)
-        
-        img.save(image.image.path)
-        create_thumbnail(image)
-        return JsonResponse({'status': 'success'})
-    return render(request, 'parts/edit_image.html', {'image': image})
-
-def rotate_image(img, direction):
-    return img.rotate(90 if direction == 'left' else -90, expand=True)
-
-def adjust_image(img, brightness, contrast):
-    img = ImageEnhance.Brightness(img).enhance(brightness)
-    return ImageEnhance.Contrast(img).enhance(contrast)
-
-def crop_image(img, left, top, right, bottom):
-    return img.crop((left, top, right, bottom))
-
-def annotate_image(img, text):
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.load_default()
-    draw.text((10, 10), text, font=font, fill="white")
-    return img
