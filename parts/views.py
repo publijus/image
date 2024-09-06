@@ -1,8 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import CarPart, CarPartImage
-from .forms import CarPartForm, CarPartImageForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Max
+from .models import CarPart, CarPartImage
+from .forms import CarPartForm, CarPartImageFormSet
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
 import os
 
@@ -14,22 +15,44 @@ def car_part_edit(request, pk):
     part = get_object_or_404(CarPart, pk=pk)
     if request.method == "POST":
         form = CarPartForm(request.POST, instance=part)
-        if form.is_valid():
+        formset = CarPartImageFormSet(request.POST, request.FILES, instance=part)
+        if form.is_valid() and formset.is_valid():
             form.save()
-            return redirect('car_part_list')
+            formset.save()
+            return redirect('car_part_edit', pk=pk)
     else:
         form = CarPartForm(instance=part)
-    return render(request, 'parts/car_part_edit.html', {'form': form, 'part': part})
+        formset = CarPartImageFormSet(instance=part)
+    return render(request, 'parts/car_part_edit.html', {'form': form, 'formset': formset, 'part': part})
 
 @csrf_exempt
 def upload_images(request, pk):
     part = get_object_or_404(CarPart, pk=pk)
     if request.method == 'POST':
         for file in request.FILES.getlist('images'):
-            image = CarPartImage(car_part=part, image=file)
+            max_order = CarPartImage.objects.filter(car_part=part).aggregate(Max('order'))['order__max'] or 0
+            image = CarPartImage(car_part=part, image=file, order=max_order + 1)
             image.save()
             create_thumbnail(image)
-    return redirect('car_part_edit', pk=pk)
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'})
+
+@csrf_exempt
+def update_image_order(request):
+    if request.method == 'POST':
+        image_ids = request.POST.getlist('image_ids[]')
+        valid_image_ids = [id for id in image_ids if id.isdigit()]
+        
+        for index, image_id in enumerate(valid_image_ids):
+            try:
+                image = CarPartImage.objects.get(id=int(image_id))
+                image.order = index
+                image.save()
+            except CarPartImage.DoesNotExist:
+                continue  # Ignoruojame neegzistuojančius ID
+        
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'})
 
 def create_thumbnail(image):
     img = Image.open(image.image.path)

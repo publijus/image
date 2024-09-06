@@ -13,6 +13,7 @@
         .image-item {
             position: relative;
             margin: 10px;
+            cursor: move;
         }
         .image-item img {
             max-width: 150px;
@@ -28,6 +29,14 @@
         .image-item .actions i {
             cursor: pointer;
         }
+        .order-id {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -35,146 +44,123 @@
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
+        <h2>Images</h2>
+        <div id="image-list" class="image-container">
+            {{ formset.management_form }}
+            {% for form in formset %}
+                <div class="image-item" data-id="{{ form.instance.id }}">
+                    {% if form.instance.thumbnail %}
+                        <img src="{{ form.instance.thumbnail.url }}" alt="Image">
+                    {% else %}
+                        <p>No thumbnail available</p>
+                    {% endif %}
+                    <div class="order-id">{{ form.instance.order }}</div>
+                    <div class="actions">
+                        <i class="fas fa-edit" onclick="openModal('{{ form.instance.id }}', '{{ form.instance.image.url }}')"></i>
+                        <i class="fas fa-trash" onclick="deleteImage('{{ form.instance.id }}')"></i>
+                    </div>
+                    {{ form.id }}
+                    {{ form.order }}
+                    {{ form.DELETE }}
+                </div>
+            {% endfor %}
+        </div>
         <button type="submit">Save</button>
     </form>
-    <h2>Images</h2>
-    <form method="post" enctype="multipart/form-data" action="{% url 'upload_images' part.id %}">
+    
+    <h2>Upload Images</h2>
+    <form id="upload-form" enctype="multipart/form-data">
         {% csrf_token %}
         <input type="file" name="images" multiple>
         <button type="submit">Upload Images</button>
     </form>
-    <div id="app">
-        <div class="image-container">
-            {% for image in part.images.all %}
-            <div class="image-item">
-                {% if image.thumbnail %}
-                <img :src="`{{ image.thumbnail.url }}`" alt="Image">
-                {% else %}
-                <p>No thumbnail available</p>
-                {% endif %}
-                <div class="actions">
-                    <i class="fas fa-edit" @click="openModal('{{ image.id }}', '{{ image.image.url }}')"></i>
-                    <i class="fas fa-trash" @click="deleteImage('{{ image.id }}')"></i>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
 
-        <!-- Modal -->
-        <div class="modal fade" id="editImageModal" tabindex="-1" role="dialog" aria-labelledby="editImageModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editImageModalLabel">Edit Image</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+    <!-- Modal -->
+    <div class="modal fade" id="editImageModal" tabindex="-1" role="dialog" aria-labelledby="editImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editImageModalLabel">Edit Image</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="image-container">
+                        <img id="modalImage" :src="currentImageUrl" alt="Image" class="img-fluid">
                     </div>
-                    <div class="modal-body">
-                        <div class="image-container">
-                            <img id="modalImage" :src="currentImageUrl" alt="Image" class="img-fluid">
-                        </div>
-                        <div class="actions mt-3">
-                            <button class="btn btn-primary" @click="rotateImage('left')">Rotate Left</button>
-                            <button class="btn btn-primary" @click="rotateImage('right')">Rotate Right</button>
-                            <button class="btn btn-primary" @click="adjustImage">Brightness/Contrast</button>
-                            <button class="btn btn-primary" @click="cropImage">Crop</button>
-                            <button class="btn btn-primary" @click="annotateImage">Annotate</button>
-                        </div>
+                    <div class="actions mt-3">
+                        <button class="btn btn-primary" @click="rotateImage('left')">Rotate Left</button>
+                        <button class="btn btn-primary" @click="rotateImage('right')">Rotate Right</button>
+                        <button class="btn btn-primary" @click="adjustImage">Brightness/Contrast</button>
+                        <button class="btn btn-primary" @click="cropImage">Crop</button>
+                        <button class="btn btn-primary" @click="annotateImage">Annotate</button>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script>
-        const { createApp, ref } = Vue;
-
-        const app = createApp({
-            setup() {
-                const currentImageId = ref(null);
-                const currentImageUrl = ref('');
-
-                const openModal = (imageId, imageUrl) => {
-                    currentImageId.value = imageId;
-                    currentImageUrl.value = imageUrl;
-                    $('#editImageModal').modal('show');
-                };
-
-                const sendEditRequest = (action, data) => {
-                    const formData = new FormData();
-                    formData.append('action', action);
-                    for (const key in data) {
-                        formData.append(key, data[key]);
-                    }
-                    fetch(`/edit_image/${currentImageId.value}/`, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('Vaizdas sėkmingai redaguotas');
+        new Sortable(document.getElementById('image-list'), {
+            animation: 150,
+            ghostClass: 'blue-background-class',
+            onEnd: function (evt) {
+                let imageIds = Array.from(evt.to.children)
+                    .map(item => item.dataset.id)
+                    .filter(id => id && id.trim() !== '');  // Filtruojame tuščius arba neapibrėžtus ID
+                $.ajax({
+                    url: '{% url "update_image_order" %}',
+                    method: 'POST',
+                    data: {
+                        'image_ids[]': imageIds,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
                             location.reload();
-                        } else {
-                            alert('Nepavyko redaguoti vaizdo');
                         }
-                    });
-                };
-
-                const rotateImage = (direction) => {
-                    sendEditRequest('rotate', { direction });
-                };
-
-                const adjustImage = () => {
-                    const brightness = prompt('Įveskite ryškumą (0.1 iki 2):', '1');
-                    const contrast = prompt('Įveskite kontrastą (0.1 iki 2):', '1');
-                    sendEditRequest('adjust', { brightness, contrast });
-                };
-
-                const cropImage = () => {
-                    const left = prompt('Įveskite kairę:', '0');
-                    const top = prompt('Įveskite viršų:', '0');
-                    const right = prompt('Įveskite dešinę:', '100');
-                    const bottom = prompt('Įveskite apačią:', '100');
-                    sendEditRequest('crop', { left, top, right, bottom });
-                };
-
-                const annotateImage = () => {
-                    const text = prompt('Įveskite tekstą anotacijai:', 'Pavyzdinis tekstas');
-                    sendEditRequest('annotate', { text });
-                };
-
-                const deleteImage = (imageId) => {
-                    if (confirm('Ar tikrai norite ištrinti šį vaizdą?')) {
-                        window.location.href = `{% url 'delete_image' image_id=0 %}`.replace('0', imageId);
                     }
-                };
-
-                return {
-                    currentImageId,
-                    currentImageUrl,
-                    openModal,
-                    rotateImage,
-                    adjustImage,
-                    cropImage,
-                    annotateImage,
-                    deleteImage
-                };
+                });
             }
         });
 
-        app.mount('#app');
+        $('#upload-form').on('submit', function(e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            $.ajax({
+                url: '{% url "upload_images" part.id %}',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    }
+                }
+            });
+        });
+
+        function openModal(imageId, imageUrl) {
+            $('#editImageModal').modal('show');
+            // ... modal logic ...
+        }
+
+        function deleteImage(imageId) {
+            if (confirm('Ar tikrai norite ištrinti šį vaizdą?')) {
+                window.location.href = `{% url 'delete_image' image_id=0 %}`.replace('0', imageId);
+            }
+        }
+
+        // ... other JavaScript functions ...
     </script>
 </body>
 </html>

@@ -7,4 +7,5 @@ urlpatterns = [
     path('upload_images/<int:pk>/', views.upload_images, name='upload_images'),
     path('delete_image/<int:image_id>/', views.delete_image, name='delete_image'),
     path('edit_image/<int:image_id>/', views.edit_image, name='edit_image'),
+    path('update_image_order/', views.update_image_order, name='update_image_order'),
 ]
