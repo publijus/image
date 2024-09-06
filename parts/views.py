@@ -1,3 +1,5 @@
+import base64
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -6,6 +8,7 @@ from .models import CarPart, CarPartImage
 from .forms import CarPartForm, CarPartImageFormSet
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
 import os
+from django.core.files.base import ContentFile  # Pridėkite šią eilutę
 
 def car_part_list(request):
     parts = CarPart.objects.all()
@@ -16,17 +19,35 @@ def car_part_edit(request, pk):
     if request.method == "POST":
         form = CarPartForm(request.POST, instance=part)
         formset = CarPartImageFormSet(request.POST, request.FILES, instance=part)
-        new_images = request.FILES.getlist('new_images')
-
+        
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
-
-            for image in new_images:
-                new_image = CarPartImage.objects.create(car_part=part, image=image)
-                create_thumbnail(new_image)
-
-            return redirect('car_part_edit', pk=pk)
+            
+            # Apdorojame ištrintus paveikslėlius
+            deleted_images = request.POST.getlist('deleted_images[]')
+            CarPartImage.objects.filter(id__in=deleted_images).delete()
+            
+            # Apdorojame redaguotus paveikslėlius
+            edited_images = json.loads(request.POST.get('edited_images', '[]'))
+            for img_data in edited_images:
+                image = CarPartImage.objects.get(id=img_data['id'])
+                # Išsaugome naują paveikslėlio versiją
+                format, imgstr = img_data['data'].split(';base64,')
+                ext = format.split('/')[-1]
+                data = ContentFile(base64.b64decode(imgstr), name=f'image.{ext}')
+                image.image.save(f'edited_image_{image.id}.{ext}', data, save=True)
+            
+            # Apdorojame pakeistą tvarką
+            image_order = json.loads(request.POST.get('image_order', '[]'))
+            for order_data in image_order:
+                image = CarPartImage.objects.get(id=order_data['id'])
+                image.order = order_data['order']
+                image.save()
+            
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error', 'errors': form.errors})
     else:
         form = CarPartForm(instance=part)
         formset = CarPartImageFormSet(instance=part)

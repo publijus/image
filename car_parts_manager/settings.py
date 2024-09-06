@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'debug_toolbar',
     'parts',
+    'widget_tweaks',
     # 'django_cleanup.apps.CleanupConfig',  # Automatically delete old files
 ]
 

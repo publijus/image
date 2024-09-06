@@ -3,103 +3,77 @@
 <head>
     <title>Edit Car Part</title>
     {% load static %}
+    {% load widget_tweaks %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        .image-container {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        .image-item {
-            position: relative;
-            margin: 10px;
-            cursor: move;
-        }
-        .image-item img {
-            max-width: 150px;
-            max-height: 150px;
-        }
-        .image-item .actions {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            display: flex;
-            gap: 5px;
-        }
-        .image-item .actions i {
-            cursor: pointer;
-        }
-        .order-id {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
-    <h1>Redaguoti automobilio dalį</h1>
-    <form method="post" enctype="multipart/form-data" id="car-part-form">
-        {% csrf_token %}
-        {{ form.as_p }}
-        
-        <h2>Įkelti nuotraukas</h2>
-        <input type="file" name="new_images" multiple>
-        <button type="submit">Upload Images</button>
-        
-        <h2>Vaizdai</h2>
-        <div id="image-list" class="image-container">
-            {{ formset.management_form }}
-            {% for form in formset %}
-                <div class="image-item" data-id="{{ form.instance.id }}">
-                    {% if form.instance.thumbnail %}
-                        <img src="{{ form.instance.thumbnail.url }}" alt="Nuotrauka">
-                    {% else %}
-                        <p>Nėra miniatiūros</p>
-                    {% endif %}
-                    <div class="order-id">{{ form.instance.order }}</div>
-                    <div class="actions">
-                        {% if form.instance.has_image %}
-                            <i class="fas fa-edit" onclick="openModal('{{ form.instance.id }}', '{{ form.instance.image.url }}')"></i>
-                        {% else %}
-                            <i class="fas fa-edit" onclick="alert('Nėra vaizdo redagavimui')"></i>
-                        {% endif %}
-                        <i class="fas fa-trash" onclick="deleteImage('{{ form.instance.id }}')"></i>
-                    </div>
-                    {{ form.id }}
-                    {{ form.DELETE }}
+    <div class="container">
+        <h1>Redaguoti automobilio dalį</h1>
+        <form method="post" enctype="multipart/form-data" id="car-part-form">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    {{ field.label_tag }}
+                    {% render_field field class="form-control" %}
                 </div>
             {% endfor %}
-        </div>
-        <button type="submit">Išsaugoti</button>
-    </form>
-    
-    <!-- Modal -->
-    <div class="modal fade" id="editImageModal" tabindex="-1" role="dialog" aria-labelledby="editImageModalLabel" aria-hidden="true">
+            
+            <h2>Nuotraukos</h2>
+            <div id="image-list" class="image-container">
+                {{ formset.management_form }}
+                {% for form in formset %}
+                    <div class="image-item" data-id="{{ form.instance.id }}">
+                        {% if form.instance.thumbnail %}
+                            <img src="{{ form.instance.thumbnail.url }}" alt="Nuotrauka">
+                        {% else %}
+                            <p>Nėra miniatiūros</p>
+                        {% endif %}
+                        <div class="order-id">{{ form.instance.order }}</div>
+                        <div class="actions">
+                            <i class="fas fa-edit edit-image"></i>
+                            <i class="fas fa-trash delete-image"></i>
+                        </div>
+                        {% for field in form %}
+                            {% render_field field %}
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="form-group">
+                <label for="new_images">Įkelti naujas nuotraukas:</label>
+                <input type="file" name="new_images" id="new_images" multiple class="form-control-file">
+                <button type="button" class="btn btn-secondary" id="addImages">Pridėti nuotraukas</button>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Išsaugoti</button>
+        </form>
+    </div>
+
+    <!-- Modal for image editing -->
+    <div class="modal fade" id="imageEditModal" tabindex="-1" role="dialog" aria-labelledby="imageEditModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editImageModalLabel">Edit Image</h5>
+                    <h5 class="modal-title" id="imageEditModalLabel">Redaguoti nuotrauką</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="image-container">
-                        <img id="modalImage" :src="currentImageUrl" alt="Image" class="img-fluid">
-                    </div>
-                    <div class="actions mt-3">
-                        <button class="btn btn-primary" @click="rotateImage('left')">Rotate Left</button>
-                        <button class="btn btn-primary" @click="rotateImage('right')">Rotate Right</button>
-                        <button class="btn btn-primary" @click="adjustImage">Brightness/Contrast</button>
-                        <button class="btn btn-primary" @click="cropImage">Crop</button>
-                        <button class="btn btn-primary" @click="annotateImage">Annotate</button>
+                    <div id="image-editor"></div>
+                    <div class="btn-group mt-3" role="group">
+                        <button type="button" class="btn btn-secondary" id="rotateLeft">Pasukti kairėn</button>
+                        <button type="button" class="btn btn-secondary" id="rotateRight">Pasukti dešinėn</button>
+                        <button type="button" class="btn btn-secondary" id="crop">Apkarpyti</button>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Uždaryti</button>
+                    <button type="button" class="btn btn-primary" id="saveImage">Išsaugoti pakeitimus</button>
                 </div>
             </div>
         </div>
@@ -109,59 +83,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-    <script>
-        new Sortable(document.getElementById('image-list'), {
-            animation: 150,
-            ghostClass: 'blue-background-class',
-            onEnd: function (evt) {
-                let imageIds = Array.from(evt.to.children)
-                    .map(item => item.dataset.id)
-                    .filter(id => id && id.trim() !== '');  // Filtruojame tuščius arba neapibrėžtus ID
-                $.ajax({
-                    url: '{% url "update_image_order" %}',
-                    method: 'POST',
-                    data: {
-                        'image_ids[]': imageIds,
-                        'csrfmiddlewaretoken': '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            location.reload();
-                        }
-                    }
-                });
-            }
-        });
-
-        $('#upload-form').on('submit', function(e) {
-            e.preventDefault();
-            let formData = new FormData(this);
-            $.ajax({
-                url: '{% url "upload_images" part.id %}',
-                method: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.status === 'success') {
-                        location.reload();
-                    }
-                }
-            });
-        });
-
-        function openModal(imageId, imageUrl) {
-            $('#editImageModal').modal('show');
-            // ... modal logic ...
-        }
-
-        function deleteImage(imageId) {
-            if (confirm('Ar tikrai norite ištrinti šį vaizdą?')) {
-                window.location.href = `{% url 'delete_image' image_id=0 %}`.replace('0', imageId);
-            }
-        }
-
-        // ... other JavaScript functions ...
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script src="{% static 'js/car_part_edit.js' %}"></script>
 </body>
 </html>

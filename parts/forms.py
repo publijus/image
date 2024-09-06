@@ -6,11 +6,15 @@ class CarPartForm(forms.ModelForm):
     class Meta:
         model = CarPart
         fields = ['part_code', 'warehouse_code']
+       
 
 class CarPartImageForm(forms.ModelForm):
     class Meta:
         model = CarPartImage
-        fields = ['image', 'order']
+        fields = ['order']
+        widgets = {
+            'order': forms.HiddenInput(),
+        }
 
 CarPartImageFormSet = inlineformset_factory(
     CarPart, CarPartImage, form=CarPartImageForm,
