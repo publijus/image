@@ -139,5 +139,5 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 INTERNAL_IPS = [
-    '127.0.0.1', '192.168.1.189'
+    '127.0.0.1', '192.168.1.189', '192.168.1.126'
 ]
