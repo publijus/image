@@ -84,7 +84,7 @@ def update_image_order(request):
 
 def create_thumbnail(image):
     img = Image.open(image.image.path)
-    img.thumbnail((100, 100))
+    img.thumbnail((200, 200))
     thumb_dir = os.path.join('media/car_parts/thumbnails')
     if not os.path.exists(thumb_dir):
         os.makedirs(thumb_dir)

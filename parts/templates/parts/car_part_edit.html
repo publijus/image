@@ -70,6 +70,23 @@
                         <button type="button" class="btn btn-secondary" id="rotateRight">Pasukti dešinėn</button>
                         <button type="button" class="btn btn-secondary" id="crop">Apkarpyti</button>
                     </div>
+                    <div class="mt-3">
+                        <label for="brightness">Ryškumas:</label>
+                        <input type="range" id="brightness" min="0" max="200" value="100">
+                    </div>
+                    <div class="mt-3">
+                        <label for="contrast">Kontrastas:</label>
+                        <input type="range" id="contrast" min="0" max="200" value="100">
+                    </div>
+                    <div class="mt-3">
+                        <h6>Anotacijos:</h6>
+                        <button type="button" class="btn btn-secondary" id="addRectangle">Pridėti stačiakampį</button>
+                        <button type="button" class="btn btn-secondary" id="addText">Pridėti tekstą</button>
+                        <button type="button" class="btn btn-secondary" id="draw">Piešti</button>
+                        <input type="color" id="annotationColor" value="#ff0000">
+                        <input type="number" id="annotationWidth" min="1" max="20" value="2">
+                    </div>
+                    <canvas id="annotation-canvas" style="display: none;"></canvas>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Uždaryti</button>
@@ -84,6 +101,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.0/fabric.min.js"></script> <!-- Pridėta Fabric.js -->
     <script src="{% static 'js/car_part_edit.js' %}"></script>
 </body>
 </html>

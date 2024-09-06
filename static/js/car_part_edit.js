@@ -19,23 +19,91 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#image-editor').html('<img src="' + imageSrc + '" id="image-to-edit">');
         $('#imageEditModal').modal('show');
         
+        // Inicializuojame Cropper.js
+        cropper = new Cropper(document.getElementById('image-to-edit'), {
+            aspectRatio: NaN,
+            viewMode: 1,
+        });
+
+        // Inicializuojame Fabric.js
+        canvas = new fabric.Canvas('annotation-canvas');
+        canvas.setWidth($('#image-to-edit').width());
+        canvas.setHeight($('#image-to-edit').height());
+        
+        // Inicializuojame įrankius tik paspaudus mygtukus
+        initializeTools();
     });
 
-    $('#rotateLeft').on('click', function() {
-        cropper.rotate(-90);
-    });
+    function initializeTools() {
+        $('#rotateLeft').on('click', function() {
+            cropper.rotate(-90);
+        });
 
-    $('#rotateRight').on('click', function() {
-        cropper.rotate(90);
-    });
+        $('#rotateRight').on('click', function() {
+            cropper.rotate(90);
+        });
 
-    $('#crop').on('click', function() {
-        cropper.setDragMode('crop');
-    });
+        $('#brightness').on('input', function() {
+            adjustBrightnessContrast();
+        });
+
+        $('#contrast').on('input', function() {
+            adjustBrightnessContrast();
+        });
+
+        $('#crop').on('click', function() {
+            cropper.setDragMode('crop');
+        });
+
+        $('#addRectangle').on('click', function() {
+            let rect = new fabric.Rect({
+                left: 100,
+                top: 100,
+                fill: 'transparent',
+                stroke: $('#annotationColor').val(),
+                strokeWidth: $('#annotationWidth').val(),
+                width: 200,
+                height: 100
+            });
+            canvas.add(rect);
+        });
+
+        $('#addText').on('click', function() {
+            let text = new fabric.IText('Įveskite tekstą', {
+                left: 100,
+                top: 100,
+                fontFamily: 'Arial',
+                fill: $('#annotationColor').val(),
+                fontSize: $('#annotationWidth').val() * 5
+            });
+            canvas.add(text);
+        });
+
+        $('#draw').on('click', function() {
+            canvas.isDrawingMode = !canvas.isDrawingMode;
+            if (canvas.isDrawingMode) {
+                canvas.freeDrawingBrush.color = $('#annotationColor').val();
+                canvas.freeDrawingBrush.width = $('#annotationWidth').val();
+            }
+        });
+    }
 
     $('#saveImage').on('click', function() {
-        let canvas = cropper.getCroppedCanvas();
-        let imageData = canvas.toDataURL('image/jpeg');
+        let imageData = cropper.getCroppedCanvas().toDataURL('image/jpeg');
+        
+        // Pridedame anotacijas
+        let annotatedCanvas = document.createElement('canvas');
+        annotatedCanvas.width = cropper.getCroppedCanvas().width;
+        annotatedCanvas.height = cropper.getCroppedCanvas().height;
+        let ctx = annotatedCanvas.getContext('2d');
+        
+        // Piešiame apkarpytą vaizdą
+        ctx.drawImage(cropper.getCroppedCanvas(), 0, 0);
+        
+        // Piešiame anotacijas
+        ctx.drawImage(canvas.lowerCanvasEl, 0, 0);
+        
+        imageData = annotatedCanvas.toDataURL('image/jpeg');
         
         // Atnaujinti DOM su nauju paveikslu
         currentImageItem.find('img').attr('src', imageData);
@@ -43,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         $('#imageEditModal').modal('hide');
         cropper.destroy();
+        canvas.dispose();
     });
 
     // Delete image
