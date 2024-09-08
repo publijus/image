@@ -29,14 +29,15 @@ def car_part_edit(request, pk):
             CarPartImage.objects.filter(id__in=deleted_images).delete()
             
             # Apdorojame redaguotus paveikslėlius
-            edited_images = json.loads(request.POST.get('edited_images', '[]'))
-            for img_data in edited_images:
-                image = CarPartImage.objects.get(id=img_data['id'])
-                format, imgstr = img_data['data'].split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f'image.{ext}')
-                image.image.save(f'edited_image_{image.id}.{ext}', data, save=True)
-                create_thumbnail(image)
+            for key, value in request.POST.items():
+                if key.startswith('edited_image_'):
+                    image_id = key.split('_')[-1]
+                    image = CarPartImage.objects.get(id=image_id)
+                    format, imgstr = value.split(';base64,')
+                    ext = format.split('/')[-1]
+                    data = ContentFile(base64.b64decode(imgstr), name=f'edited_image_{image.id}.{ext}')
+                    image.image.save(f'edited_image_{image.id}.{ext}', data, save=True)
+                    create_thumbnail(image)
             
             # Apdorojame pakeistą tvarką
             image_order = json.loads(request.POST.get('image_order', '[]'))

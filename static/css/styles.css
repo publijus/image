@@ -41,15 +41,4 @@
     object-fit: contain; /* Išlaikyti aspektų santykį */
 }
 
-.modal-content {
-    display: flex; /* Naudoti flexbox */
-    justify-content: center; /* Centruoti turinį horizontaliai */
-    align-items: center; /* Centruoti turinį vertikaliai */
-    max-width: 90%; /* Maksimalus modalų plotis */
-    max-height: 90%; /* Maksimalus modalų aukštis */
-    overflow: auto; /* Paslėpti perteklių */
-}
 
-.modal-lg {
-    max-width: 95%; /* Pakeiskite į 95% arba kitą vertę */
-}
