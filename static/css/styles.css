@@ -41,4 +41,18 @@
     object-fit: contain; /* Išlaikyti aspektų santykį */
 }
 
+/* Pridėkite šiuos stilius prie esamų */
+.tui-image-editor-container {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.tui-image-editor-main {
+    top: 0 !important;
+}
+
+.tui-image-editor-header {
+    display: none !important;
+}
+
 

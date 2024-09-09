@@ -8,24 +8,42 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui-color-picker/latest/tui-color-picker.css">
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui-image-editor/latest/tui-image-editor.css">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.3.1/fabric.min.js"></script>
+    <script src="https://uicdn.toast.com/tui-color-picker/latest/tui-color-picker.js"></script>
+    <script src="https://uicdn.toast.com/tui-image-editor/latest/tui-image-editor.js"></script>
     <style>
        
 
        .modal-dialog {
-           max-width: 90%;
-           max-height: 90vh;
-           margin: 1.75rem auto;
+           max-width: 90%; /* Maksimalus modalas užima 90% ekrano pločio */
+           width: auto; /* Automatinis plotis */
+           height: auto; /* Automatinis aukštis */
        }
 
        .modal-content {
-           height: 100%;
+           height: 80vh; /* Modalas užima 80% ekrano aukščio */
+           overflow: hidden; /* Paslėpti perteklių */
        }
 
-       #image-editor-container {
-           height: 80vh;
+       #tui-image-editor {
+           width: 100%; /* Paveikslėlio redaktorius užima visą modalą */
+           height: 100%; /* Paveikslėlio redaktorius užima visą modalą */
+           object-fit: contain; /* Išlaikyti aspektų santykį */
+       }
+
+       .modal-footer {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+       }
+
+       .modal-footer button {
+           margin: 0 5px;
        }
     </style>
 </head>
@@ -77,16 +95,16 @@
     <div class="modal fade" id="image-editor-container" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
-                <!-- Čia bus įterpiamas redaktoriaus turinys -->
+                <div id="tui-image-editor"></div><!-- Čia bus įterpiamas redaktoriaus turinys -->
+                <div class="modal-footer">
+                    <button id="save-button" class="btn btn-primary">Išsaugoti</button>
+                    <button id="close-button" class="btn btn-secondary" data-dismiss="modal">Uždaryti</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-    <script src="https://scaleflex.cloudimg.io/v7/plugins/filerobot-image-editor/latest/filerobot-image-editor.min.js"></script>
     <script src="{% static 'js/car_part_edit.js' %}"></script>
 </body>
 </html>

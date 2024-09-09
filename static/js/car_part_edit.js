@@ -6,10 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
         onEnd: updateImageOrder
     });
 
-    // Image editing
     let currentImageItem;
     let imageEditor;
-//    let filerobotImageEditor; // Paskelbkite šį kintamąjį globaliai failo pradžioje
 
     // Bendras įvykių klausytojas visiems paveikslėliams
     $('#image-list').on('click', '.edit-image', function() {
@@ -24,63 +22,55 @@ document.addEventListener('DOMContentLoaded', function() {
         currentImageItem = imageItem;
         const imageSrc = currentImageItem.data('original-src');
 
-        const TABS = window.FilerobotImageEditor.TABS;
-        const TOOLS = window.FilerobotImageEditor.TOOLS;
-
-        //$('#image-editor-container').html('');
         $('#image-editor-container').modal('show');
-        // Parodykite modalą
-      //  $('#image-editor-container').show(); // Įsitikinkite, kad konteineris yra matomas
 
-        const config = {
-            source: imageSrc,
-            onSave: (editedImageObject, designState) => {
-                saveEditedImage(editedImageObject.imageBase64);
-                $('#image-editor-container').modal('hide');
-                imageEditor.terminate();
-            },
-            onClose: () => {
-                $('#image-editor-container').modal('hide');
-                imageEditor.terminate();
-            },
-            annotationsCommon: {
-                fill: '#ff00a2'
-            },
-            Text: { text: 'Įveskite tekstą' },
-            Rotate: {
-                angle: 90,
-                componentType: 'buttons'
-            },
-           
-            theme: {
-                palette: {
-                    'bg-primary': '#2196f3',
-                    'bg-secondary': '#e0e0e0',
+  //      const modalContent = document.querySelector('#image-editor-container .modal-content');
+  //      modalContent.innerHTML = '<div id="tui-image-editor"></div>'; 
+
+  //      createButtons(modalContent);
+
+        // Įsitikinkite, kad modalas yra pilnai atidarytas prieš inicijuojant redaktorių
+        $('#image-editor-container').on('shown.bs.modal', function () {
+            const instance = new tui.ImageEditor(document.querySelector('#tui-image-editor'), {
+                includeUI: {
+                    loadImage: {
+                        path: imageSrc, // Naudokite imageSrc
+                        name: 'SampleImage'
+                    },
+                    menu: ['crop', 'rotate','draw', 'shape', 'icon','text', 'mask', 'filter'],
+                    initMenu: 'draw',
+                    uiSize: {
+                        width: '100%',
+                        height: '100%'
+                    },
+                    menuBarPosition: 'right'
                 },
-                typography: {
-                    fontFamily: 'Roboto, Arial, sans-serif',
+            //    cssMaxWidth: 200,
+            //    cssMaxHeight: 200,
+                selectionStyle: {
+                    cornerSize: 20,
+                    rotatingPointOffset: 70
                 }
-            },
-         //   tabsIds: [window.FilerobotImageEditor.TABS.ADJUST, window.FilerobotImageEditor.TABS.ANNOTATE, window.FilerobotImageEditor.TABS.WATERMARK],
-            defaultTabId: window.FilerobotImageEditor.TABS.ADJUST,
-            defaultToolId: window.FilerobotImageEditor.TOOLS.CROP,
-          //  showInModal: true,
-            useBackendTranslations: false,
-            showInModal: true,
-            modalSize: 'large'
-        };
+            });
 
-        imageEditor = new FilerobotImageEditor(
-            document.querySelector('#image-editor-container'),
-            config
-        );
+            // Pridedame mygtukų klausytojus čia
+            document.getElementById('save-button').addEventListener('click', function() {
+                const quality = 0.8; // Nustatykite kokybę nuo 0 iki 1 (1 yra aukščiausia kokybė)
+                const format = 'jpeg';
+                const result = instance.toDataURL({
+                    format: format,
+                    quality: quality
+                });
+                saveEditedImage(result);
+                $('#image-editor-container').modal('hide');
+            });
 
-        imageEditor.render();
-     //   imageEditor.render({
-     //       onClose: () => {
-     //           $('#image-editor-container').modal('hide');
-     //       }
-        //});
+            document.getElementById('close-button').addEventListener('click', function() {
+                instance.destroy();
+                $('#image-editor-container').modal('hide');
+            });
+
+        });
     }
 
     function saveEditedImage(imageData) {
@@ -209,4 +199,5 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         imageList.appendChild(newImageItem);
     }
+
 });
