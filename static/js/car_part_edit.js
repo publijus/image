@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+
+    checkTotalImageCount();
+
     // Sortable initialization
     new Sortable(document.getElementById('image-list'), {
         animation: 150,
@@ -7,7 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     let currentImageItem;
-    let imageEditor;
 
     // Bendras įvykių klausytojas visiems paveikslėliams
     $('#image-list').on('click', '.edit-image', function() {
@@ -24,12 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         $('#image-editor-container').modal('show');
 
-  //      const modalContent = document.querySelector('#image-editor-container .modal-content');
-  //      modalContent.innerHTML = '<div id="tui-image-editor"></div>'; 
-
-  //      createButtons(modalContent);
-
-        // Įsitikinkite, kad modalas yra pilnai atidarytas prieš inicijuojant redaktorių
         $('#image-editor-container').on('shown.bs.modal', function () {
             const instance = new tui.ImageEditor(document.querySelector('#tui-image-editor'), {
                 includeUI: {
@@ -84,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (confirm('Ar tikrai norite ištrinti šią nuotrauką?')) {
             imageItem.addClass('to-be-deleted').hide();
             updateImageOrder();
+            checkTotalImageCount();
         }
     }
 
@@ -143,9 +140,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const fileInput = document.getElementById('new_images');
         const files = fileInput.files;
         const partId = $('#car-part-form').data('part-id');
+        const currentImageCount = $('.image-item:not(.to-be-deleted)').length;
 
         if (files.length === 0) {
             alert('Prašome pasirinkti nuotraukas įkėlimui.');
+            return;
+        }
+
+        if (currentImageCount + files.length > MAX_IMAGES) {
+            alert(`Galite įkelti ne daugiau kaip ${MAX_IMAGES} nuotraukų. Šiuo metu jau turite ${currentImageCount} nuotraukų.`);
             return;
         }
 
@@ -198,6 +201,21 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="image-${image.id}-order" value="${image.order}">
         `;
         imageList.appendChild(newImageItem);
+        checkTotalImageCount();
     }
 
 });
+
+const MAX_IMAGES = 24;
+
+// Pridėkite šią funkciją, kad patikrintumėte bendrą nuotraukų skaičių
+function checkTotalImageCount() {
+    const currentImageCount = $('.image-item:not(.to-be-deleted)').length;
+    if (currentImageCount >= MAX_IMAGES) {
+        $('#addImages').prop('disabled', true);
+        $('#new_images').prop('disabled', true);
+    } else {
+        $('#addImages').prop('disabled', false);
+        $('#new_images').prop('disabled', false);
+    }
+}

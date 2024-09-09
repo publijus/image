@@ -18,5 +18,5 @@ class CarPartImageForm(forms.ModelForm):
 
 CarPartImageFormSet = inlineformset_factory(
     CarPart, CarPartImage, form=CarPartImageForm,
-    extra=0, can_delete=False
+    extra=0, can_delete=False, max_num=24, validate_max=True
 )
