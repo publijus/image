@@ -77,11 +77,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function deleteImage(imageItem) {
-        if (confirm('Ar tikrai norite ištrinti šią nuotrauką?')) {
-            imageItem.addClass('to-be-deleted').hide();
-            updateImageOrder();
-            checkTotalImageCount();
-        }
+        imageItem.addClass('to-be-deleted').hide();
+        updateImageOrder();
+        checkTotalImageCount();
     }
 
     // Function to update image order
@@ -173,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.status === 'success') {
                     response.images.forEach(addImageToList);
                     updateImageOrder();
-                    fileInput.value = ''; // Išvalyti failo įvesties lauką
+                    fileInput.value = ''; 
                 } else {
                     alert('Įvyko klaida įkeliant nuotraukas');
                 }
