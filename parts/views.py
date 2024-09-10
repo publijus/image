@@ -24,11 +24,11 @@ def car_part_edit(request, pk):
             form.save()
             formset.save()
             
-            # Apdorojame ištrintus paveikslėlius
+            # Process deleted images
             deleted_images = request.POST.getlist('deleted_images[]')
             CarPartImage.objects.filter(id__in=deleted_images).delete()
             
-            # Apdorojame redaguotus paveikslėlius
+            # Process edited images
             for key, value in request.POST.items():
                 if key.startswith('edited_image_'):
                     image_id = key.split('_')[-1]
@@ -39,7 +39,7 @@ def car_part_edit(request, pk):
                     image.image.save(f'edited_image_{image.id}.{ext}', data, save=True)
                     create_thumbnail(image)
             
-            # Apdorojame pakeistą tvarką
+            # Process changed order
             image_order = json.loads(request.POST.get('image_order', '[]'))
             for order_data in image_order:
                 image = CarPartImage.objects.get(id=order_data['id'])

@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let currentImageItem;
 
-    // Bendras įvykių klausytojas visiems paveikslėliams
+    // Common event listener for all images
     $('#image-list').on('click', '.edit-image', function() {
         initializeImageEdit($(this).closest('.image-item'));
     });
@@ -30,10 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const instance = new tui.ImageEditor(document.querySelector('#tui-image-editor'), {
                 includeUI: {
                     loadImage: {
-                        path: imageSrc, // Naudokite imageSrc
+                        path: imageSrc, 
                         name: 'SampleImage'
                     },
-                    menu: ['crop', 'rotate','draw', 'shape', 'icon','text', 'mask', 'filter'],
+                    menu: ['rotate','draw', 'shape', 'icon','text', 'mask', 'filter'],
                     initMenu: 'draw',
                     uiSize: {
                         width: '100%',
@@ -49,9 +49,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Pridedame mygtukų klausytojus čia
             document.getElementById('save-button').addEventListener('click', function() {
-                const quality = 0.8; // Nustatykite kokybę nuo 0 iki 1 (1 yra aukščiausia kokybė)
+                const quality = 0.8; 
                 const format = 'jpeg';
                 const result = instance.toDataURL({
                     format: format,
@@ -70,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function saveEditedImage(imageData) {
-        // Atnaujinti DOM su nauju paveikslu, bet neišsaugoti į serverį
+        // Update DOM with the new image, but don't save to the server
         currentImageItem.find('img').attr('src', imageData);
         currentImageItem.find('img').attr('data-edited', 'true');
         currentImageItem.attr('data-edited-src', imageData);
@@ -82,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
         checkTotalImageCount();
     }
 
-    // Function to update image order
     function updateImageOrder() {
         $('.image-item:not(.to-be-deleted)').each(function(index) {
             $(this).find('.order-id').text(index + 1);
@@ -96,12 +94,10 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         let formData = new FormData(this);
         
-        // Pridedame informaciją apie ištrintus paveikslėlius
         $('.image-item.to-be-deleted').each(function() {
             formData.append('deleted_images[]', $(this).data('id'));
         });
         
-        // Pridedame informaciją apie redaguotus paveikslėlius
         $('.image-item[data-edited-src]').each(function() {
             let imageData = $(this).attr('data-edited-src');
             let imageId = $(this).data('id');
@@ -115,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }));
         });
         
-        // Siunčiame visus pakeitimus į serverį
+        // Send all changes to the server
         $.ajax({
             url: $(this).attr('action'),
             method: 'POST',
@@ -187,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const newImageItem = document.createElement('div');
         newImageItem.className = 'image-item';
         newImageItem.dataset.id = image.id;
-        newImageItem.dataset.originalSrc = image.url;  // Pridėkite originalų URL
+        newImageItem.dataset.originalSrc = image.url;  
         newImageItem.innerHTML = `
             <img src="${image.thumbnail_url}" alt="Nuotrauka">
             <div class="order-id">${image.order}</div>
@@ -206,7 +202,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 const MAX_IMAGES = 24;
 
-// Pridėkite šią funkciją, kad patikrintumėte bendrą nuotraukų skaičių
 function checkTotalImageCount() {
     const currentImageCount = $('.image-item:not(.to-be-deleted)').length;
     if (currentImageCount >= MAX_IMAGES) {

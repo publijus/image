@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-#jf94rk+)q%dgjyfoa94$)o3%ze#w=e-)964y@tq6pt#ifapw3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.189']
+ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.189', '*']
 
 
 # Application definition
@@ -40,10 +40,12 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'parts',
     'widget_tweaks',
+    'corsheaders',
     # 'django_cleanup.apps.CleanupConfig',  # Automatically delete old files
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -55,6 +57,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'car_parts_manager.urls'
+
+CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = [
+       'https://*.ngrok-free.app',
+       'http://*.ngrok-free.app',
+   ]
 
 TEMPLATES = [
     {
@@ -144,3 +152,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 INTERNAL_IPS = [
     '127.0.0.1', '192.168.1.189', '192.168.1.126'
 ]
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_COLLAPSED': True,  # This setting makes the toolbar collapsed by default
+}
